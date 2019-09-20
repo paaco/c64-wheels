@@ -53,3 +53,8 @@ logo_charmap:
 
     * = $2000
     !source "generated/wheels-charset.inc"
+
+    !align 63, 0
+sprites:
+SPRITE_OFFSET = (sprites and $3FFF) >> 6
+    !source "generated/sprites.inc"
