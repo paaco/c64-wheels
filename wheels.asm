@@ -46,6 +46,41 @@ start:
         sta $D022
         lda #$08
         sta $D023
+
+        ; sprites
+        I_PILOT = 0
+        I_WHEEL = 2
+        lda #100 ; x
+        sta $D000 + 2*(I_PILOT)
+        sta $D000 + 2*(I_PILOT+1)
+        sta $D000 + 2*(I_WHEEL)
+        sta $D000 + 2*(I_WHEEL+1)
+        lda #100 ; y pilot
+        sta $D001 + 2*(I_PILOT)
+        sta $D001 + 2*(I_PILOT+1)
+        clc
+        adc #17 ; y wheel
+        sta $D001 + 2*(I_WHEEL)
+        sta $D001 + 2*(I_WHEEL+1)
+        lda #1 ; detail color
+        sta $D027 + I_PILOT
+        lda #2 ; pilot color
+        sta $D027 + I_PILOT+1
+        lda #11 ; detail color
+        sta $D027 + I_WHEEL
+        lda #15 ; wheel color
+        sta $D027 + I_WHEEL+1
+        lda #SPRITE_OFFSET+7 ; pilot detail image
+        sta $07F8 + I_PILOT
+        lda #SPRITE_OFFSET ; pilot image
+        sta $07F8 + I_PILOT+1
+        lda #SPRITE_OFFSET+8 ; wheel detail image
+        sta $07F8 + I_WHEEL
+        lda #SPRITE_OFFSET+1 ; wheel image
+        sta $07F8 + I_WHEEL+1
+        ; enable sprites
+        lda #%00001111
+        sta $D015
         rts
 
 logo_charmap:
