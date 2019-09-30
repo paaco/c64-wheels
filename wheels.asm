@@ -93,3 +93,6 @@ logo_charmap:
 sprites:
 SPRITE_OFFSET = (sprites and $3FFF) >> 6
     !source "generated/sprites.inc"
+sprites_glimmer:
+SPRITE_OFFSET_GLIMMER = (sprites_glimmer and $3FFF) >> 6
+    !source "generated/glimmer.inc"

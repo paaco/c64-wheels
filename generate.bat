@@ -8,3 +8,5 @@
 @rem sprites
 call aseprite -b --split-layers assets\sprites.ase --data NUL --sheet generated\sprites.png
 @rem TODO java Sprite2asm
+call aseprite -b assets\glimmer.ase --data NUL --sheet generated\glimmer-bg4.png
+@rem TODO java Sprite2asm
