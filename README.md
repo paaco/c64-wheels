@@ -15,8 +15,11 @@ Note that multicolors bits are different for sprites and character sets, so mapp
     sprites     BG:$D021  MC1:$D025  $D027+     MC2:$D026
     chars       BG:$D021  MC1:$D022  MC2:$D023  $D800+
 
+Sprites will always cover character/bitmap bits 00 and 01 (bit 0 for hires). However, bits 10 and 11 (bit 1 for hires) will cover sprites with 'lower' priority, i.e. their bit is set to 1 in $D01B.
+
 ### TODO
 
+* specify -chXX to generate characters instead of sprites (XX=offset)
 * script exporting assets with asesprite to .png files
 * script converting all .png files to .asm
 * exomizer .prg (first showing the logo, decrunching a few seconds and moving logo to top would be cool)
