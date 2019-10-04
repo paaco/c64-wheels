@@ -6,8 +6,10 @@
     !byte $0c,$08,$b5,$07,$9e,$20,$32,$30,$36,$32,$00,$00,$00
 start:
         ldx #0
+        clc
 .loop_logo:
         lda logo_charmap,x
+        adc #64 ; font eerst
         sta $0400,x
         lda #$08 ; black mc
         sta $D800,x
@@ -87,6 +89,7 @@ logo_charmap:
     !source "generated/wheels-charmap.inc"
 
     * = $2000
+    !binary "assets/chargen-speccy.rom", 64*8
     !source "generated/wheels-charset.inc"
 
     !align 63, 0
