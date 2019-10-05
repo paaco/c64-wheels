@@ -89,7 +89,7 @@ logo_charmap:
     !source "generated/wheels-charmap.inc"
 
     * = $2000
-    !binary "assets/chargen-speccy.rom", 64*8
+    !binary "assets/chargen-a500topaz8V2.rom", 64*8
     !source "generated/wheels-charset.inc"
 
     !align 63, 0
