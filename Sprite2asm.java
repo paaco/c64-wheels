@@ -19,6 +19,8 @@ public class Sprite2asm {
     // color specifiers
     private static final Pattern BGPATTERN = Pattern.compile("-bg([0-9a-fA-F])"); // -bgX bg (forces hires)
     private static final Pattern MCPATTERN = Pattern.compile("-mc([0-9a-fA-F])([0-9a-fA-F])"); // -mcXX mc1 mc2
+    // charset specifiers
+    private static final Pattern CHPATTERN = Pattern.compile("-ch([0-9a-fA-F][0-9a-fA-F])"); // -chXX create charset
 
     private Sprite2asm(String fname) {
         srcfilename = fname;
@@ -36,6 +38,7 @@ public class Sprite2asm {
     private int bgIndex = 0;     // black, but actually defaults to transparent index
     private int mc1Index = 1;    // white
     private int mc2Index = 2;    // red
+    private int chOffset = -1;   // >= enables charset mode, but default is sprites
 
     // pixelWidth 1: bgIndex is '0', any other color is '1' (sprite color)
     // pixelWidth 2: bgIndex is '00'(0), mc1Index is '01'(1), mc2Index is '11'(3), any other is '10'(2) (sprite color)
@@ -109,6 +112,7 @@ public class Sprite2asm {
     private void updateColorMapping(String str) {
         Matcher bg = BGPATTERN.matcher(str);
         Matcher mc = MCPATTERN.matcher(str);
+        Matcher ch = CHPATTERN.matcher(str);
         if (bg.find()) { // "-bgX" sets bg index and forces hires
             bgIndex = Integer.parseInt(bg.group(1),16);
             pixel_width = 1;
@@ -117,6 +121,10 @@ public class Sprite2asm {
             mc1Index = Integer.parseInt(mc.group(1),16);
             mc2Index = Integer.parseInt(mc.group(2),16);
             pixel_width = 2;
+        }
+        chOffset = -1;
+        if (ch.find()) { // -chXX set charmap mode
+            chOffset = Integer.parseInt(ch.group(1),16);
         }
     }
 
@@ -135,46 +143,52 @@ public class Sprite2asm {
             System.out.println("; Sprite2asm " + f.getName() + " " + DateFormat.getDateTimeInstance().format(new Date()));
             Raster pixels = image.getData();
 
-            // convert characters with charset and charmap
-            // TODO: colormap from extractChar?
-            byte[] charset = new byte[8 * 256];
-            int charsetSize = 0;
-            byte[] charmap = new byte[1000]; // max full screen
-            int charmapSize = 0;
-            byte[] curChar = new byte[8];
-            for (int cy = 0; cy + 8 <= height; cy += 8) {
-                for (int cx = 0; cx + 8 <= width; cx += 8) {
-                    extractChar(pixels, cx, cy, curChar);
-                    int ch = findInCharset(curChar, charset, charsetSize);
-                    if (ch == charsetSize) { // not found
-                        System.arraycopy(curChar, 0, charset, charsetSize * 8, 8);
-                        charsetSize++;
+            if (chOffset >= 0) {
+                // convert characters with charset and charmap
+                // TODO: colormap from extractChar?
+                byte[] charset = new byte[8 * 256];
+                int charsetSize = 0;
+                byte[] charmap = new byte[1000]; // max full screen
+                int charmapSize = 0;
+                byte[] curChar = new byte[8];
+                for (int cy = 0; cy + 8 <= height; cy += 8) {
+                    for (int cx = 0; cx + 8 <= width; cx += 8) {
+                        extractChar(pixels, cx, cy, curChar);
+                        int ch = findInCharset(curChar, charset, charsetSize);
+                        if (ch == charsetSize) { // not found
+                            System.arraycopy(curChar, 0, charset, charsetSize * 8, 8);
+                            charsetSize++;
+                        }
+                        charmap[charmapSize++] = (byte)(ch + chOffset);
                     }
-                    charmap[charmapSize++] = (byte)ch;
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append(String.format("; charset %d uniques\n", charsetSize));
+                appendByteRows(sb, charset, charsetSize * 8, 8);
+                sb.append(String.format("; charmap %d bytes (%d x %d)\n", charmapSize, width / 8, height / 8));
+                appendByteRows(sb, charmap, charmapSize, width / 8);
+                System.out.print(sb);
+                if (charsetSize + chOffset > 256) {
+                    System.err.format("WARNING: charmap overflows with %d characters; use offset -ch%02X instead\n",
+                        charsetSize + chOffset - 256, 256 - charsetSize);
+                }
+            } else {
+                // convert sprites
+                int nr = 0;
+                byte[] sprite = new byte[64];
+                for (int sy = 0; sy + 21 <= height; sy += 21) {
+                    for (int sx = 0; sx + 24 <= width; sx += 24) {
+                        extractSprite(pixels, sx, sy, sprite);
+                        if (notEmpty(sprite)) {
+                            StringBuilder sb = new StringBuilder();
+                            sb.append(String.format("; %d (%d,%d)\n", nr, sx, sy));
+                            appendByteRows(sb, sprite, 64, 21);
+                            System.out.print(sb);
+                            nr++;
+                        }
+                    }
                 }
             }
-            StringBuilder sb = new StringBuilder();
-            sb.append(String.format("; charset %d uniques\n", charsetSize));
-            appendByteRows(sb, charset, charsetSize * 8, 8);
-            sb.append(String.format("; charmap %d bytes (%d x %d)\n", charmapSize, width / 8, height / 8));
-            appendByteRows(sb, charmap, charmapSize, width / 8);
-            System.out.print(sb);
-/*
-            // convert sprites
-            int nr = 0;
-            byte[] sprite = new byte[64];
-            for (int sy = 0; sy + 21 <= height; sy += 21) {
-                for (int sx = 0; sx + 24 <= width; sx += 24) {
-                    extractSprite(pixels, sx, sy, sprite);
-                    if (notEmpty(sprite)) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append(String.format("; %d (%d,%d)\n", nr, sx, sy));
-                        appendByteRows(sb, sprite, 64, 21);
-                        System.out.print(sb);
-                        nr++;
-                    }
-                }
-            }*/
         }
     }
 
