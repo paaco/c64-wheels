@@ -5,6 +5,7 @@ import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -151,6 +152,7 @@ public class Sprite2asm {
                 byte[] charmap = new byte[1000]; // max full screen
                 int charmapSize = 0;
                 byte[] curChar = new byte[8];
+                int emptyChar = -1; // not found
                 for (int cy = 0; cy + 8 <= height; cy += 8) {
                     for (int cx = 0; cx + 8 <= width; cx += 8) {
                         extractChar(pixels, cx, cy, curChar);
@@ -158,6 +160,9 @@ public class Sprite2asm {
                         if (ch == charsetSize) { // not found
                             if (charsetSize * 8 < charset.length) {
                                 System.arraycopy(curChar, 0, charset, charsetSize * 8, 8);
+                                if (emptyChar < 0 && !containsBits(curChar)) {
+                                    emptyChar = charsetSize;
+                                }
                                 charsetSize++;
                             } else {
                                 System.err.format("ERROR: aborting, more than %d uniques is not supported\n",
@@ -167,6 +172,18 @@ public class Sprite2asm {
                             }
                         }
                         charmap[charmapSize++] = (byte)(ch + chOffset);
+                    }
+                }
+                // if there's an empty character, move that to front
+                if (emptyChar > 0) {
+                    System.arraycopy(charset, 0, charset, emptyChar * 8, 8);
+                    Arrays.fill(charset, 0, 8, (byte) 0);
+                    for (int i = 0; i < charmapSize; i++) {
+                        if (charmap[i] == chOffset) {
+                            charmap[i] = (byte)(emptyChar + chOffset);
+                        } else if (charmap[i] == (byte)(emptyChar + chOffset)) {
+                            charmap[i] = (byte)chOffset;
+                        }
                     }
                 }
                 StringBuilder sb = new StringBuilder();
@@ -186,7 +203,7 @@ public class Sprite2asm {
                 for (int sy = 0; sy + 21 <= height; sy += 21) {
                     for (int sx = 0; sx + 24 <= width; sx += 24) {
                         extractSprite(pixels, sx, sy, sprite);
-                        if (notEmpty(sprite)) {
+                        if (containsBits(sprite)) {
                             StringBuilder sb = new StringBuilder();
                             sb.append(String.format("; %d (%d,%d)\n", nr, sx, sy));
                             appendByteRows(sb, sprite, 64, 21);
@@ -199,12 +216,13 @@ public class Sprite2asm {
         }
     }
 
-    private boolean notEmpty(byte[] sprite) {
-        byte bits = 0;
-        for (int i = 0; i < 64; i++) {
-            bits |= sprite[i];
+    private boolean containsBits(byte[] block) {
+        for (byte b : block) {
+            if (b != 0) {
+                return true;
+            }
         }
-        return bits != 0;
+        return false;
     }
 
     private void appendByteRows(StringBuilder sb, byte[] input, int len, int wrap) {

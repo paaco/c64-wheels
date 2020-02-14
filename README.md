@@ -21,6 +21,5 @@ Sprites will always cover character/bitmap bits 00 and 01 (bit 0 for hires). How
 ### TODO
 * specify -dh for double height sprites (height 42)
 * specify -dw for double width sprites (width 48)
-* put empty char (if any) at first position in charset
 * script converting all .png files to .asm
 * exomizer .prg (first showing the logo, decrunching a few seconds and moving logo to top would be cool)
