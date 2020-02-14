@@ -38,11 +38,11 @@ public class Sprite2asm {
     private int bgIndex = 0;     // black, but actually defaults to transparent index
     private int mc1Index = 1;    // white
     private int mc2Index = 2;    // red
-    private int chOffset = -1;   // >= enables charset mode, but default is sprites
+    private int chOffset = -1;   // >= 0 enables charset mode, but default is sprites
 
     // pixelWidth 1: bgIndex is '0', any other color is '1' (sprite color)
     // pixelWidth 2: bgIndex is '00'(0), mc1Index is '01'(1), mc2Index is '11'(3), any other is '10'(2) (sprite color)
-    private void extractSprite(Raster pixels, int xoff, int yoff, byte buf[]) {
+    private void extractSprite(Raster pixels, int xoff, int yoff, byte[] buf) {
         int bufoffset = 0;
         int bitcount = 0;
         byte b = 0;
@@ -134,13 +134,13 @@ public class Sprite2asm {
         int height = image.getHeight();
         int width = image.getWidth();
         if (!(image.getColorModel() instanceof IndexColorModel)) {
-            System.err.println("ERROR: image should have palette");
+            System.err.format("ERROR: image should have palette\n");
         } else {
             // pick bg from transparent color index
             bgIndex = ((IndexColorModel)image.getColorModel()).getTransparentPixel();
             updateColorMapping(srcfilename);
 
-            System.out.println("; Sprite2asm " + f.getName() + " " + DateFormat.getDateTimeInstance().format(new Date()));
+            System.out.format("; Sprite2asm %s %s\n", f.getName(), DateFormat.getDateTimeInstance().format(new Date()));
             Raster pixels = image.getData();
 
             if (chOffset >= 0) {
@@ -156,8 +156,15 @@ public class Sprite2asm {
                         extractChar(pixels, cx, cy, curChar);
                         int ch = findInCharset(curChar, charset, charsetSize);
                         if (ch == charsetSize) { // not found
-                            System.arraycopy(curChar, 0, charset, charsetSize * 8, 8);
-                            charsetSize++;
+                            if (charsetSize * 8 < charset.length) {
+                                System.arraycopy(curChar, 0, charset, charsetSize * 8, 8);
+                                charsetSize++;
+                            } else {
+                                System.err.format("ERROR: aborting, more than %d uniques is not supported\n",
+                                        charset.length / 8);
+                                cy = height; // end outer loop
+                                break;
+                            }
                         }
                         charmap[charmapSize++] = (byte)(ch + chOffset);
                     }
